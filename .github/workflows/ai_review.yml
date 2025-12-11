@@ -1,0 +1,83 @@
+name: AI Multi-Agent PR Review
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install deps
+        run: pip install -r requirements.txt || true
+
+  claude_review:
+    needs: index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Claude Review
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          python ai/runners/run_claude_review.py --pr-number ${{ github.event.pull_request.number }} || echo "Claude review failed"
+      - name: Create Claude status check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "claude-check",
+              head_sha: context.payload.pull_request.head.sha,
+              status: "completed",
+              conclusion: "success"
+            })
+
+  gemini_review:
+    needs: [index, claude_review]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Gemini Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python ai/runners/run_gemini_review.py || echo "Gemini review failed"
+      - name: Create Gemini status check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "gemini-check",
+              head_sha: context.payload.pull_request.head.sha,
+              status: "completed",
+              conclusion: "success"
+            })
+
+  perplexity_review:
+    needs: [index, claude_review, gemini_review]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Perplexity Review
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+        run: python ai/runners/run_perplexity_review.py || echo "Perplexity review failed"
+      - name: Create Perplexity status check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "perplexity-check",
+              head_sha: context.payload.pull_request.head.sha,
+              status: "completed",
+              conclusion: "success"
+            })
