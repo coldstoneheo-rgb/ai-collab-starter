@@ -1,0 +1,13 @@
+{
+  "name": "ai-collab-starter",
+  "version": "0.1.0",
+  "description": "AI multi-agent collaboration starter template",
+  "scripts": {
+    "index": "python scripts/index_docs.py",
+    "claude": "python ai/runners/run_claude_review.py",
+    "gemini": "python ai/runners/run_gemini_review.py",
+    "perplexity": "python ai/runners/run_perplexity_review.py",
+    "autofix": "python ai/runners/run_autofix.py"
+  },
+  "devDependencies": {}
+}
