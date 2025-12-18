@@ -46,6 +46,55 @@ If an AI-generated patch touches any of the following:
   - Router returns no agents
   - All AI jobs are skipped
 
+
+## Safety & Governance Checklist (MANDATORY)
+
+The following rules are non-negotiable and must always be enforced.
+
+### Branch & Review Protection
+- Branch protection enabled
+- Require ≥ 1 human PR review
+- AI-generated PRs must never bypass human review
+
+### Required Status Checks
+- claude-check (always required)
+- gemini-check (required for pro / enterprise)
+- perplexity-check (optional, enterprise only)
+
+### Autofix Rules
+- Autofix PRs are **non-mergeable by bots**
+- Auto-merge is disabled by default
+- Auto-merge can only be enabled via explicit feature flag
+- Even with auto-merge enabled, sensitive paths are excluded
+
+### Audit & Logging
+- All AI prompts and outputs must be logged
+- Logs are append-only (immutable)
+- Logs must be retained for at least 90 days
+
+### Sensitive Paths Protection
+If an AI-generated patch touches any of the following:
+- DB migrations
+- Infrastructure code
+- Secrets / auth
+- Payment or billing logic
+
+→ **All auto actions are blocked**
+
+### Cost Guard
+- Heavy model calls are blocked if monthly budget exceeds threshold
+- Budget is enforced before AI execution, not after
+
+### Prompt Governance
+- Prompt templates are code
+- Prompt changes must go through PR review
+
+### Emergency Kill Switch
+- Repo secret: `DISABLE_AI_AUTOMATION=true`
+- When enabled:
+  - Router returns no agents
+  - All AI jobs are skipped
+
 ## Mode Decision Policy
 
 ### Manual Override
