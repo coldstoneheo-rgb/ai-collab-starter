@@ -1,51 +1,112 @@
-## Safety & Governance Checklist (MANDATORY)
+# HANDOFF.md
 
-The following rules are non-negotiable and must always be enforced.
+## Project
+ai-collab-starter  
+Multi-AI collaboration system for GitHub-based development  
+(Claude PM, Gemini FE, Perplexity Research/Compliance, GPT Core Logic)
 
-### Branch & Review Protection
-- Branch protection enabled
-- Require ≥ 1 human PR review
-- AI-generated PRs must never bypass human review
+## Current Phase
+**Phase 1 — Safe Modular System (ACTIVE)**
 
-### Required Status Checks
-- claude-check (always required)
-- gemini-check (required for pro / enterprise)
-- perplexity-check (optional, enterprise only)
+This project is intentionally NOT fully automated yet.
+The current goal is to deliver value fast on real projects
+while minimizing risk, cost explosion, and architectural entanglement.
 
-### Autofix Rules
-- Autofix PRs are **non-mergeable by bots**
-- Auto-merge is disabled by default
-- Auto-merge can only be enabled via explicit feature flag
-- Even with auto-merge enabled, sensitive paths are excluded
+## Strategic Direction (Authoritative)
 
-### Audit & Logging
-- All AI prompts and outputs must be logged
-- Logs are append-only (immutable)
-- Logs must be retained for at least 90 days
+### Long-term Goal
+Evolve into a **Fully Automated AI Development Environment**
+(Hyper-router, multi-agent orchestration, minimal human intervention).
 
-### Sensitive Paths Protection
-If an AI-generated patch touches any of the following:
-- DB migrations
-- Infrastructure code
-- Secrets / auth
-- Payment or billing logic
+### Current Priority (DO NOT SKIP)
+Build a **Safe Modular System first**, then mature in controlled phases.
 
-→ **All auto actions are blocked**
+This is a deliberate risk-control strategy.
 
-### Cost Guard
-- Heavy model calls are blocked if monthly budget exceeds threshold
-- Budget is enforced before AI execution, not after
+### Core Principles
+- Start small, expand safely
+- One decision point only (router)
+- Router decides, runners execute
+- Execution logic must stay modular
+- Human-in-the-loop is mandatory in early phases
+- Cost, safety, and auditability are first-class concerns
 
-### Prompt Governance
-- Prompt templates are code
-- Prompt changes must go through PR review
+### Fixed Modes (Do Not Add More)
+- lite
+- pro
+- enterprise
 
-### Emergency Kill Switch
-- Repo secret: `DISABLE_AI_AUTOMATION=true`
-- When enabled:
-  - Router returns no agents
-  - All AI jobs are skipped
+## Phased Roadmap (Locked Concept)
 
+### Phase 1 — Safe Modular System (CURRENT)
+**Goal**
+- Deploy to real projects quickly
+- Prove value without structural risk
+
+**Rules**
+- Router only decides (no execution logic)
+- GitHub Actions execute conditionally
+- No autofix merge
+- All AI prompts and outputs logged
+- Human approval required for all code changes
+
+**Key Deliverables**
+- ai/router.py
+- ai/plugins/*
+- Conditional AI workflows
+- Claude PR review with diff + RAG
+- Audit logging
+
+---
+
+### Phase 2 — Stabilization & RAG Upgrade
+**Goal**
+- Improve accuracy and observability
+
+**Planned**
+- Chroma-based vector RAG
+- Improved PR diff & context extraction
+- Cost monitoring + alerts
+- Prompt versioning via PR
+- AI disagreement report (compare & escalate)
+
+---
+
+### Phase 3 — Selective Automation
+**Goal**
+- Carefully test automation where risk is low
+
+**Planned**
+- Auto-merge ONLY for low-risk fixes (lint, format, docs)
+- Canary rollout (≤5% of PRs)
+- Auto-rollback on CI failure
+- Cost-aware router decisions
+
+---
+
+### Phase 4 — Full AI Dev Studio (FUTURE)
+**Goal**
+- End-to-end AI-driven development loop
+
+**Planned**
+- Hyper-router
+- Serverless orchestration backend
+- Autonomous PR generation loops
+- Advanced audit & explainability UI
+- Legal & ethical compliance layer
+
+### Important Warning
+Any attempt to:
+- Introduce full automation early
+- Add intelligence into GitHub Actions instead of router
+- Remove human-in-the-loop prematurely
+
+is considered a **design regression**.
+
+## Current Next Tasks (Ordered)
+1. Add PR diff support to Gemini runner
+2. Block autofix automatically in enterprise mode
+3. Upgrade RAG to Chroma-based indexing
 
 ## Safety & Governance Checklist (MANDATORY)
 
