@@ -18,45 +18,6 @@ jobs:
   router:
     needs: index
     runs-on: ubuntu-latest
-    outputs:
-      mode: ${{ steps.decide.outputs.mode }}
-      enabled_agents: ${{ steps.decide.outputs.enabled_agents }}
-      autofix_allowed: ${{ steps.decide.outputs.autofix_allowed }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11
-      - name: Install deps
-        run: pip install -r requirements.txt || true
-      - name: Run router decision
-        id: decide
-        run: |
-          python - <<'PY'
-          import json
-          from ai.router import decide_mode
-
-          decision = decide_mode('.')
-          outputs = {
-              "mode": decision.mode,
-              "enabled_agents": json.dumps(decision.enabled_agents),
-              "autofix_allowed": "true" if decision.autofix_allowed else "false",
-          }
-
-          with open("$GITHUB_OUTPUT", "a", encoding="utf-8") as fh:
-              for key, value in outputs.items():
-                  line = f"{key}={value}\n"
-                  print(line, end="")
-                  fh.write(line)
-          PY
-
-  claude_review:
-    needs: router
-    if: contains(fromJson(needs.router.outputs.enabled_agents), 'claude')
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run Claude Review
