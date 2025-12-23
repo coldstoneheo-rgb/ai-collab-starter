@@ -15,8 +15,46 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt || true
 
-  claude_review:
+  router:
     needs: index
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.decide.outputs.mode }}
+      enabled_agents: ${{ steps.decide.outputs.enabled_agents }}
+      autofix_allowed: ${{ steps.decide.outputs.autofix_allowed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install deps
+        run: pip install -r requirements.txt || true
+      - name: Run router decision
+        id: decide
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from ai.router import decide_mode
+
+          decision = decide_mode('.')
+          outputs = {
+              "mode": decision.mode,
+              "enabled_agents": json.dumps(decision.enabled_agents),
+              "autofix_allowed": "true" if decision.autofix_allowed else "false",
+          }
+
+          for key, value in outputs.items():
+              print(f"{key}={value}")
+
+          Path("router_outputs.txt").write_text("\n".join(f"{k}={v}" for k, v in outputs.items()))
+          PY
+          cat router_outputs.txt >> "$GITHUB_OUTPUT"
+
+  claude_review:
+    needs: router
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'claude')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +77,8 @@ jobs:
             })
 
   gemini_review:
-    needs: [index, claude_review]
+    needs: [router, claude_review]
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'gemini')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +100,8 @@ jobs:
             })
 
   perplexity_review:
-    needs: [index, claude_review, gemini_review]
+    needs: [router, claude_review, gemini_review]
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'perplexity')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
