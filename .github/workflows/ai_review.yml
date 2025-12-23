@@ -15,8 +15,44 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt || true
 
-  claude_review:
+  router:
     needs: index
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.decide.outputs.mode }}
+      enabled_agents: ${{ steps.decide.outputs.enabled_agents }}
+      autofix_allowed: ${{ steps.decide.outputs.autofix_allowed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install deps
+        run: pip install -r requirements.txt || true
+      - name: Run router decision
+        id: decide
+        run: |
+          outputs=$(python - <<'PY'
+          import json
+          from ai.router import decide_mode
+
+          decision = decide_mode('.')
+          print(f"mode={decision.mode}")
+          print(f"enabled_agents={json.dumps(decision.enabled_agents)}")
+          print(f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}")
+          PY
+          )
+
+          while IFS= read -r line; do
+            echo "$line" >> "$GITHUB_OUTPUT"
+          done <<< "$outputs"
+
+  claude_review:
+    needs: router
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'claude')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +75,8 @@ jobs:
             })
 
   gemini_review:
-    needs: [index, claude_review]
+    needs: [router, claude_review]
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'gemini')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +98,8 @@ jobs:
             })
 
   perplexity_review:
-    needs: [index, claude_review, gemini_review]
+    needs: [router, claude_review, gemini_review]
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'perplexity')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

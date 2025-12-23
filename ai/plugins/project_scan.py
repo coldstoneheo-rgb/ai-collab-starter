@@ -1,5 +1,6 @@
 # ai/plugins/project_scan.py
 import os
+import subprocess
 
 def analyze_project(base_path='.'):
     # simple heuristics, extend later
@@ -9,6 +10,7 @@ def analyze_project(base_path='.'):
         'has_payment': False,
         'touches_personal_data': False,
         'is_enterprise': False,
+        'changed_paths': [],
     }
     code_ext = ('.py','.ts','.js','.tsx','.jsx','.go','.java')
     ui_markers = ('components','pages','App.tsx','index.html')
@@ -29,4 +31,20 @@ def analyze_project(base_path='.'):
     # enterprise heuristic
     if result['code_files'] > 500 or result['has_payment']:
         result['is_enterprise'] = True
+
+    result['changed_paths'] = _detect_changed_paths(base_path)
     return result
+
+
+def _detect_changed_paths(base_path: str):
+    """Return a list of changed file paths relative to the repo."""
+    try:
+        output = subprocess.check_output(
+            ['git', '-C', base_path, 'diff', '--name-only', 'origin/main...HEAD'],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except Exception:
+        return []
+
+    return [line.strip() for line in output.splitlines() if line.strip()]
