@@ -35,7 +35,6 @@ jobs:
         run: |
           python - <<'PY'
           import json
-          from pathlib import Path
           from ai.router import decide_mode
 
           decision = decide_mode('.')
@@ -45,12 +44,12 @@ jobs:
               "autofix_allowed": "true" if decision.autofix_allowed else "false",
           }
 
-          for key, value in outputs.items():
-              print(f"{key}={value}")
-
-          Path("router_outputs.txt").write_text("\n".join(f"{k}={v}" for k, v in outputs.items()))
+          with open("$GITHUB_OUTPUT", "a", encoding="utf-8") as fh:
+              for key, value in outputs.items():
+                  line = f"{key}={value}\n"
+                  print(line, end="")
+                  fh.write(line)
           PY
-          cat router_outputs.txt >> "$GITHUB_OUTPUT"
 
   claude_review:
     needs: router
