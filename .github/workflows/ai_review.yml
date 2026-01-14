@@ -18,6 +18,42 @@ jobs:
   router:
     needs: index
     runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.decide.outputs.mode }}
+      enabled_agents: ${{ steps.decide.outputs.enabled_agents }}
+      autofix_allowed: ${{ steps.decide.outputs.autofix_allowed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - name: Install deps
+        run: pip install -r requirements.txt || true
+      - name: Run router decision
+        id: decide
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from ai.router import decide_mode
+
+          decision = decide_mode('.')
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"mode={decision.mode}\n")
+              handle.write(f"enabled_agents={json.dumps(decision.enabled_agents)}\n")
+              handle.write(
+                  f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}\n"
+              )
+          PY
+
+  claude_review:
+    needs: router
+    if: contains(fromJson(needs.router.outputs.enabled_agents), 'claude')
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Run Claude Review
@@ -25,18 +61,6 @@ jobs:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
         run: |
           python ai/runners/run_claude_review.py --pr-number ${{ github.event.pull_request.number }} || echo "Claude review failed"
-      - name: Create Claude status check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "claude-check",
-              head_sha: context.payload.pull_request.head.sha,
-              status: "completed",
-              conclusion: "success"
-            })
 
   gemini_review:
     needs: [router, claude_review]
