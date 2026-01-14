@@ -35,14 +35,19 @@ jobs:
       - name: Run router decision
         id: decide
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
+          python - <<'PY'
           import json
+          import os
           from ai.router import decide_mode
 
           decision = decide_mode('.')
-          print(f"mode={decision.mode}")
-          print(f"enabled_agents={json.dumps(decision.enabled_agents)}")
-          print(f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}")
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"mode={decision.mode}\n")
+              handle.write(f"enabled_agents={json.dumps(decision.enabled_agents)}\n")
+              handle.write(
+                  f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}\n"
+              )
           PY
 
   claude_review:
