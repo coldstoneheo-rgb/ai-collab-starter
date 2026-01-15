@@ -1,0 +1,13 @@
+{
+  "monthly_budget_usd": 50,
+  "monthly_spent_usd": 0,
+  "last_reset": "2026-01-15",
+  "cost_tracking": {
+    "claude": 0,
+    "gemini": 0,
+    "perplexity": 0,
+    "gpt": 0
+  },
+  "history": [],
+  "notes": "This file tracks AI API usage costs. Reset monthly_spent_usd at the start of each month."
+}

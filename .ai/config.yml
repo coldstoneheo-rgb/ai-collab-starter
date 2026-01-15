@@ -1,0 +1,57 @@
+# AI-Collab Project Configuration
+# This file allows project-specific overrides
+
+# Force specific mode (overrides router decision)
+# Options: lite, pro, enterprise
+# Leave commented to use automatic mode selection
+# mode: pro
+
+# Project metadata
+project:
+  name: ai-collab-starter
+  type: template
+  language: python
+  framework: github-actions
+
+# Feature flags
+features:
+  rag_enabled: true
+  audit_logging: true
+  cost_tracking: true
+  kill_switch: true
+  metrics_collection: false  # Phase 2
+
+# RAG Configuration
+rag:
+  engine: naive  # naive or chroma (Phase 2)
+  top_k: 5
+  max_doc_size_kb: 20
+  ignore_patterns:
+    - node_modules
+    - .git
+    - __pycache__
+    - dist
+    - build
+
+# Paths
+paths:
+  prompts: .github/AI_PROMPTS
+  context: docs/CONTEXT
+  logs: ai/logs
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  initial_delay_seconds: 2
+  backoff_multiplier: 2
+
+# Timeout configuration (seconds)
+timeouts:
+  api_call: 60
+  workflow_step: 300
+
+# Development mode
+development:
+  enabled: false  # Set to true for local testing
+  mock_api_calls: false
+  verbose_logging: false
