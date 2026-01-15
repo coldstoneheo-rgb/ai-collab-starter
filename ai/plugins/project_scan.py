@@ -43,7 +43,11 @@ def _detect_changed_paths(base_path: str):
             ['git', '-C', base_path, 'diff', '--name-only', 'origin/main...HEAD'],
             stderr=subprocess.DEVNULL,
             text=True,
+            timeout=10  # 10 second timeout to prevent hanging
         )
+    except subprocess.TimeoutExpired:
+        print("⚠️ Git diff timed out after 10s, using fallback")
+        return []
     except Exception:
         return []
 
