@@ -1,0 +1,24 @@
+# AI-Collab-Starter Dependencies
+# Last updated: 2026-01-15
+
+# Core AI SDKs
+anthropic>=0.18.0          # Claude API
+google-generativeai>=0.3.0 # Gemini API
+openai>=1.0.0              # GPT API
+
+# RAG & Vector DB
+chromadb>=0.4.0            # Vector database for Phase 2
+sentence-transformers>=2.2.0  # Text embeddings
+
+# GitHub Integration
+PyGithub>=2.0.0            # GitHub API client
+requests>=2.31.0           # HTTP requests
+
+# Configuration & Utilities
+pyyaml>=6.0                # YAML parsing (ai_team.yml)
+python-dotenv>=1.0.0       # Environment variables
+python-dateutil>=2.8.2     # Date utilities
+
+# Testing (optional, for development)
+pytest>=7.4.0
+pytest-cov>=4.1.0

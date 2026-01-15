@@ -1,0 +1,144 @@
+# AI Team Configuration
+# This file defines the AI agent team structure for this project
+# Version: 1.0
+
+project_name: ai-collab-starter
+version: 1.0
+description: AI Multi-Agent Collaboration Starter Template
+
+# AI Team Members
+team:
+  pm:
+    agent: claude
+    model: claude-sonnet-4-5-20250929
+    responsibilities:
+      - product_requirement_review
+      - acceptance_criteria_validation
+      - architecture_review
+      - security_review
+      - logic_validation
+      - release_planning
+    prompt_template: claude_pm_review_v1.txt
+    enabled: true
+
+  frontend_lead:
+    agent: gemini
+    model: gemini-2.0-flash-thinking-exp-01-21
+    responsibilities:
+      - uiux_design_review
+      - component_structure_analysis
+      - responsiveness_check
+      - accessibility_validation
+      - multi_perspective_analysis
+      - performance_optimization
+    prompt_template: gemini_uiux_v1.txt
+    enabled: true
+
+  compliance:
+    agent: perplexity
+    model: llama-3.1-sonar-large-128k-online
+    responsibilities:
+      - legal_review
+      - policy_compliance_check
+      - risk_analysis
+      - regulatory_validation
+      - market_research
+      - industry_standards
+    prompt_template: perplexity_compliance_v1.txt
+    enabled: true
+
+  backend_engineer:
+    agent: gpt
+    model: gpt-4.5-preview
+    responsibilities:
+      - api_design_review
+      - database_schema_review
+      - infrastructure_review
+      - devops_review
+      - performance_analysis
+      - technical_documentation
+    prompt_template: gpt_backend_v1.txt
+    enabled: false  # Enable in Phase 1 when runner is ready
+
+# Merge Rules
+rules:
+  # Which agents must approve before merge
+  merge_requires:
+    - pm              # Claude PM always required
+    - frontend_lead   # Gemini for UI changes
+
+  # Paths that require enterprise mode (all agents)
+  enterprise_required_for_paths:
+    - "infra/**"
+    - "terraform/**"
+    - "k8s/**"
+    - ".github/workflows/**"
+    - "security/**"
+    - "auth/**"
+    - "payments/**"
+    - "migrations/**"
+    - "db/**"
+    - ".env*"
+
+  # What autofix can do
+  autofix_enabled:
+    - lint_fixes
+    - formatting
+    - simple_refactoring
+    - documentation
+
+  # What autofix cannot do
+  autofix_disabled:
+    - security_changes
+    - database_migrations
+    - infrastructure_changes
+    - api_contract_changes
+    - authentication_logic
+    - payment_logic
+
+# Budget Configuration
+budget:
+  monthly_limit_usd: 50
+  alert_threshold_percent: 80
+  cost_per_mode:
+    lite: 0.20        # Single agent
+    pro: 0.75         # 2-3 agents
+    enterprise: 2.50  # All agents
+
+# Monitoring & Alerts
+monitoring:
+  metrics_enabled: true
+  audit_logs_retention_days: 90
+
+  alert_channels:
+    - github_issues  # Create issue on critical alerts
+    # - slack        # Uncomment when configured
+    # - email        # Uncomment when configured
+
+  alert_conditions:
+    - budget_80_percent
+    - budget_exceeded
+    - ai_error_rate_high
+    - security_issue_detected
+    - compliance_violation
+
+# Override Settings
+overrides:
+  # Allow manual mode override via repo secret AI_FORCE_MODE
+  allow_manual_mode: true
+
+  # Emergency kill-switch via DISABLE_AI_AUTOMATION secret
+  emergency_killswitch_enabled: true
+
+# Experimental Features (Phase 2+)
+experimental:
+  vector_rag: false          # Enable Chroma vector DB
+  multi_persona_analysis: true  # Gemini multi-perspective
+  auto_merge_low_risk: false    # Selective automation
+  cost_aware_model_selection: false  # Dynamic model choice
+
+# Notes
+# - Changes to this file require PR review
+# - Agent models can be updated as new versions release
+# - Responsibilities should align with PRD.md Section 10
+# - Budget should be adjusted based on project scale
