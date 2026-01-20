@@ -1,31 +1,220 @@
 #!/usr/bin/env python3
 """
-Placeholder runner: loads PR diff and sends prompt to Claude API.
-Replace `send_to_claude()` with real Claude API client call.
+Claude PM Review Runner.
+Collects PR information, generates review prompt, calls Claude API, and posts comment.
 """
-import os, sys, json, argparse
+import os
+import sys
+import argparse
+import json
 from pathlib import Path
-from ai.context7.rag_pipeline import fetch_top_k
 
-def send_to_claude(prompt, api_key):
-    # Placeholder: implement real HTTP call to Claude Code API
-    print("=== CLAUDE REQUEST ===")
-    print(prompt[:1000])
-    return {"verdict":"APPROVE","issues":[],"tests":[]}
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from ai.utils.pr_collector import PRCollector
+from ai.utils.prompt_loader import build_claude_review_prompt
+from ai.runners.clients.claude_client import ClaudeClient
+from ai.runners.clients.base_client import AIClientError, APIKeyMissingError
+
+
+def update_cost_tracker(cost_usd: float):
+    """
+    Update cost tracking budget file.
+
+    Args:
+        cost_usd: Cost in USD to add
+    """
+    budget_file = Path('.ai/budget.json')
+
+    if not budget_file.exists():
+        print(f"⚠️ Budget file not found: {budget_file}")
+        return
+
+    try:
+        with open(budget_file, 'r') as f:
+            budget = json.load(f)
+
+        # Update Claude cost
+        budget['cost_tracking']['claude'] = budget.get('cost_tracking', {}).get('claude', 0) + cost_usd
+        budget['monthly_spent_usd'] = budget.get('monthly_spent_usd', 0) + cost_usd
+
+        with open(budget_file, 'w') as f:
+            json.dump(budget, f, indent=2)
+
+        print(f"💰 Cost updated: +${cost_usd:.6f}")
+        print(f"   Total spent: ${budget['monthly_spent_usd']:.6f} / ${budget['monthly_budget_usd']}")
+
+        # Check budget warning
+        if budget['monthly_spent_usd'] > budget['monthly_budget_usd'] * 0.8:
+            print(f"⚠️ WARNING: 80% of monthly budget used!")
+
+    except Exception as e:
+        print(f"⚠️ Failed to update cost tracker: {e}")
+
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pr-number', type=int, default=None)
+    """Main entry point for Claude review runner."""
+    parser = argparse.ArgumentParser(description='Run Claude PM review on a PR')
+    parser.add_argument(
+        '--pr-number',
+        type=int,
+        required=True,
+        help='Pull request number to review'
+    )
+    parser.add_argument(
+        '--post-comment',
+        action='store_true',
+        default=True,
+        help='Post review as PR comment (default: True)'
+    )
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Run without posting comment or updating costs'
+    )
+    parser.add_argument(
+        '--max-tokens',
+        type=int,
+        default=4000,
+        help='Maximum tokens for Claude response (default: 4000)'
+    )
+
     args = parser.parse_args()
-    # build context:
-    top_docs = fetch_top_k("project overview", k=5)
-    # load prompt template
-    tpl = Path('.github/AI_PROMPTS/claude_review.txt').read_text()
-    # build prompt (simple)
-    prompt = tpl + "\n\nContext Docs:\n" + "\n\n".join([d['path'] for d in top_docs])
-    api_key = os.getenv('CLAUDE_API_KEY','')
-    resp = send_to_claude(prompt, api_key)
-    print(json.dumps(resp, indent=2))
+
+    print(f"🤖 Claude PM Review - PR #{args.pr_number}")
+    print("=" * 60)
+
+    # Check for dry run
+    if args.dry_run:
+        print("🏃 DRY RUN MODE - No comments will be posted, no costs recorded")
+        print()
+
+    # Step 1: Collect PR information
+    print("📥 Step 1: Collecting PR information...")
+    try:
+        collector = PRCollector()
+        pr_info = collector.get_pr_info(args.pr_number)
+
+        print(f"   ✅ PR #{pr_info.number}: {pr_info.title}")
+        print(f"   📝 Author: {pr_info.author}")
+        print(f"   🌿 Branch: {pr_info.head_branch} → {pr_info.base_branch}")
+        print(f"   📊 Changes: +{pr_info.additions} -{pr_info.deletions} in {pr_info.changed_files} files")
+
+        if pr_info.has_sensitive_changes():
+            print(f"   ⚠️ SENSITIVE CHANGES DETECTED")
+
+        print()
+
+    except Exception as e:
+        print(f"   ❌ Failed to collect PR information: {e}")
+        sys.exit(1)
+
+    # Step 2: Build review prompt
+    print("📝 Step 2: Building review prompt...")
+    try:
+        prompt = build_claude_review_prompt(pr_info)
+        prompt_tokens = len(prompt) // 4  # Rough estimate
+        print(f"   ✅ Prompt built (~{prompt_tokens} tokens)")
+        print()
+
+    except FileNotFoundError as e:
+        print(f"   ❌ Prompt template not found: {e}")
+        print(f"   💡 Make sure .github/AI_PROMPTS/claude_pm_review_v1.txt exists")
+        sys.exit(1)
+    except Exception as e:
+        print(f"   ❌ Failed to build prompt: {e}")
+        sys.exit(1)
+
+    # Step 3: Send to Claude API
+    print("🧠 Step 3: Sending to Claude API...")
+    try:
+        client = ClaudeClient()
+        print(f"   📡 Using model: {client.model}")
+        print(f"   ⏳ Waiting for response...")
+
+        response = client.send_prompt(prompt, max_tokens=args.max_tokens)
+
+        print(f"   ✅ Response received")
+        print(f"   📊 Tokens: {response.input_tokens} in + {response.output_tokens} out = {response.total_tokens} total")
+        print(f"   💰 Cost: ${response.cost_usd:.6f}")
+        print()
+
+    except APIKeyMissingError:
+        print(f"   ❌ CLAUDE_API_KEY not found in environment")
+        print(f"   💡 Set CLAUDE_API_KEY environment variable")
+        sys.exit(1)
+    except AIClientError as e:
+        print(f"   ❌ Claude API error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"   ❌ Unexpected error: {e}")
+        sys.exit(1)
+
+    # Step 4: Post comment to PR
+    if args.post_comment and not args.dry_run:
+        print("💬 Step 4: Posting review comment...")
+        try:
+            # Format review comment
+            review_comment = f"""## 🤖 Claude PM Review
+
+{response.content}
+
+---
+<sub>Review by Claude ({client.model}) | Tokens: {response.total_tokens} | Cost: ${response.cost_usd:.6f}</sub>
+"""
+
+            comment_id = collector.post_comment(args.pr_number, review_comment)
+            print(f"   ✅ Comment posted (ID: {comment_id})")
+            print()
+
+        except Exception as e:
+            print(f"   ❌ Failed to post comment: {e}")
+            # Don't exit - we still want to update costs
+            print()
+    elif args.dry_run:
+        print("💬 Step 4: Posting review comment...")
+        print("   ⏭️ Skipped (dry run)")
+        print()
+    else:
+        print("💬 Step 4: Posting review comment...")
+        print("   ⏭️ Skipped (--no-post-comment)")
+        print()
+
+    # Step 5: Update cost tracker
+    if not args.dry_run:
+        print("💰 Step 5: Updating cost tracker...")
+        update_cost_tracker(response.cost_usd)
+        print()
+    else:
+        print("💰 Step 5: Updating cost tracker...")
+        print("   ⏭️ Skipped (dry run)")
+        print()
+
+    # Summary
+    print("=" * 60)
+    print("✅ Claude PM Review Complete")
+    print()
+    print("📊 Summary:")
+    print(f"   PR: #{pr_info.number} - {pr_info.title}")
+    print(f"   Model: {client.model}")
+    print(f"   Tokens: {response.total_tokens}")
+    print(f"   Cost: ${response.cost_usd:.6f}")
+
+    if args.dry_run:
+        print()
+        print("🏃 This was a DRY RUN - no changes were made")
+
+    # Output review content for debugging/logging
+    print()
+    print("📄 Review Content Preview:")
+    print("-" * 60)
+    preview = response.content[:500]
+    print(preview)
+    if len(response.content) > 500:
+        print("... (truncated)")
+    print("-" * 60)
+
 
 if __name__ == '__main__':
     main()
