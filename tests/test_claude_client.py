@@ -6,6 +6,8 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 
+pytest.importorskip("anthropic")
+
 from ai.runners.clients.claude_client import ClaudeClient
 from ai.runners.clients.base_client import (
     APIKeyMissingError,

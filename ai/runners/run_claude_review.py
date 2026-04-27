@@ -16,6 +16,8 @@ from ai.utils.pr_collector import PRCollector
 from ai.utils.prompt_loader import build_claude_review_prompt
 from ai.runners.clients.claude_client import ClaudeClient
 from ai.runners.clients.base_client import AIClientError, APIKeyMissingError
+from ai.utils.audit_logger import log_ai_event
+from ai.utils.safety_policy import MANUAL_APPROVAL_REQUIRED_MSG
 
 
 def update_cost_tracker(cost_usd: float):
@@ -81,6 +83,7 @@ def main():
     )
 
     args = parser.parse_args()
+    decision_reason = os.getenv("ROUTER_REASON", "runner_local_or_unknown")
 
     print(f"🤖 Claude PM Review - PR #{args.pr_number}")
     print("=" * 60)
@@ -108,6 +111,15 @@ def main():
 
     except Exception as e:
         print(f"   ❌ Failed to collect PR information: {e}")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="pr_collection_failed",
+            error_message=str(e),
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
 
     # Step 2: Build review prompt
@@ -121,9 +133,27 @@ def main():
     except FileNotFoundError as e:
         print(f"   ❌ Prompt template not found: {e}")
         print(f"   💡 Make sure .github/AI_PROMPTS/claude_pm_review_v1.txt exists")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="prompt_template_missing",
+            error_message=str(e),
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
     except Exception as e:
         print(f"   ❌ Failed to build prompt: {e}")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="prompt_build_failed",
+            error_message=str(e),
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
 
     # Step 3: Send to Claude API
@@ -143,22 +173,55 @@ def main():
     except APIKeyMissingError:
         print(f"   ❌ CLAUDE_API_KEY not found in environment")
         print(f"   💡 Set CLAUDE_API_KEY environment variable")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="api_key_missing",
+            error_message="CLAUDE_API_KEY not found",
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
     except AIClientError as e:
         print(f"   ❌ Claude API error: {e}")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="api_client_error",
+            error_message=str(e),
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
     except Exception as e:
         print(f"   ❌ Unexpected error: {e}")
+        log_ai_event(
+            agent="claude",
+            pr_number=args.pr_number,
+            status="failed",
+            decision_reason=decision_reason,
+            error_type="unexpected_error",
+            error_message=str(e),
+            tags=["runner", "claude", "failure"],
+        )
         sys.exit(1)
 
     # Step 4: Post comment to PR
     if args.post_comment and not args.dry_run:
         print("💬 Step 4: Posting review comment...")
+        comment_posted = False
         try:
             # Format review comment
+            manual_notice = ""
+            if pr_info.has_sensitive_changes():
+                manual_notice = (
+                    f"> ⚠️ **{MANUAL_APPROVAL_REQUIRED_MSG}**\n\n"
+                )
             review_comment = f"""## 🤖 Claude PM Review
 
-{response.content}
+{manual_notice}{response.content}
 
 ---
 <sub>Review by Claude ({client.model}) | Tokens: {response.total_tokens} | Cost: ${response.cost_usd:.6f}</sub>
@@ -167,6 +230,7 @@ def main():
             comment_id = collector.post_comment(args.pr_number, review_comment)
             print(f"   ✅ Comment posted (ID: {comment_id})")
             print()
+            comment_posted = True
 
         except Exception as e:
             print(f"   ❌ Failed to post comment: {e}")
@@ -200,6 +264,30 @@ def main():
     print(f"   Model: {client.model}")
     print(f"   Tokens: {response.total_tokens}")
     print(f"   Cost: ${response.cost_usd:.6f}")
+
+    tags = ["runner", "claude", "success"]
+    if pr_info.has_sensitive_changes():
+        tags.append("sensitive_changes")
+    if args.dry_run:
+        tags.append("dry_run")
+    log_ai_event(
+        agent="claude",
+        pr_number=args.pr_number,
+        status="success",
+        decision_reason=decision_reason,
+        input_tokens=response.input_tokens,
+        output_tokens=response.output_tokens,
+        total_tokens=response.total_tokens,
+        cost_usd=response.cost_usd if not args.dry_run else 0.0,
+        tags=tags,
+        metadata={
+            "model": client.model,
+            "prompt_tokens_estimate": prompt_tokens,
+            "comment_posted": bool(args.dry_run or not args.post_comment) or locals().get("comment_posted", False),
+            "sensitive_changes": pr_info.has_sensitive_changes(),
+            "changed_files": pr_info.changed_files,
+        },
+    )
 
     if args.dry_run:
         print()

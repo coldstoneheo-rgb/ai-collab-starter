@@ -34,6 +34,24 @@
 
 - 생산성 ❌
     👉 **통제·안전·예측 가능성 ⭕**
+
+### 1.5 운영 개정안 (2026-04-23, 우선 적용)
+
+아래 개정안은 기존 PRD의 확장/실험 서술과 충돌할 경우 우선 적용한다.
+
+1. 비용 상한 우선
+   - 월 예산/PR당 비용 상한을 넘기면 기능 추가보다 AI 호출 축소를 먼저 수행한다.
+2. 안정성 우선
+   - 실패를 성공으로 덮는 workflow fallback은 금지한다.
+   - CI 실패 시 신규 기능 개발보다 복구가 우선이다.
+3. 유지보수 우선
+   - router, mode_map, workflow의 계약 일치가 깨지면 즉시 수정한다.
+   - 러너가 없는 agent는 enabled 목록에서 제외한다.
+4. 자동화 절제
+   - Phase 1-3에서 자동 merge는 기본 비활성으로 유지한다.
+   - Full-cycle automation은 연구 항목이며 구현 기본값이 아니다.
+5. 사람 승인 우선
+   - 민감 경로/보안/결제/인프라 변경은 항상 human-in-the-loop를 강제한다.
     
 ---
 
@@ -332,9 +350,42 @@ Gemini의 멀티 태스킹 활용 예:
 - `perplexity-check`: enterprise only
 - `ci-lint`, `unit-tests`, `e2e-tests`: 기본 CI
 
+### 12.3 안정형 실행 계약 (필수)
+
+1. workflow는 router의 결정을 실행만 하며, 판단하지 않는다.
+2. `$GITHUB_OUTPUT`는 표준 echo 방식만 사용한다.
+3. 실패를 성공처럼 보이게 만드는 fallback(`|| echo`, `continue-on-error`)을 금지한다.
+4. push 기반 autofix workflow는 기본 비활성 상태를 유지한다.
+5. mode_map에 있는 agent는 runner/workflow job 존재 여부와 항상 동기화한다.
+
 ---
 
 ## 13. Phase별 상세 로드맵
+
+### 13.0 운영형 로드맵 (우선 적용)
+
+기존 Phase 3/4의 고자동화 서술은 장기 연구 항목으로 유지하되,
+실제 구현 순서는 아래 운영형 로드맵을 우선 적용한다.
+
+1. **Phase 1A — 계약 안정화**
+   - 문서/코드 계약 정렬
+   - router 출력 계약 고정
+   - workflow 실패 위장 제거
+2. **Phase 1B — 실행 안정화**
+   - 프롬프트/러너 경로 정합성 복구
+   - 테스트 수집 오류 제거
+   - 비용 기록 실패 시 안전 중단
+3. **Phase 2A — 비용 최적화**
+   - 라이트 모드 우선 실행 정책
+   - 재시도 상한(최대 1회) 적용
+   - PR당 비용 목표($1 이내) 강제
+4. **Phase 2B — 관측성과 운영성**
+   - 로그/메트릭 최소 세트 고정
+   - 알림 조건 단순화(비용, 연속실패, 민감경로)
+5. **Phase 3 — 제한적 자동화 검증**
+   - 자동 merge 기본 비활성 유지
+   - 필요 시 단일 저위험 케이스로만 실험
+   - 롤백 검증 없이는 확대 금지
 
 ### Phase 0: 준비 (완료)
 
@@ -459,6 +510,19 @@ Gemini의 멀티 태스킹 활용 예:
 - 각 AI 호출 비용 로깅
 - 주간/월간 리포트 생성
 - 프로젝트별 비용 추적
+
+### 14.3 비용 안전장치 (개정)
+
+1. Hard stop
+   - `monthly_spent_usd >= monthly_budget_usd` 이면 AI runner 실행 중단
+2. Soft degrade
+   - 예산 80% 초과 시 enterprise 실행 차단, pro/lite로 강등
+3. Retry budget
+   - 동일 PR에서 agent 재호출은 1회로 제한
+4. Cost visibility
+   - PR 코멘트에 agent별 사용 토큰/비용을 요약 노출
+5. Unknown cost handling
+   - 비용 계산 실패 시 `cost_unknown`으로 기록하고 보수적으로 중단
 
 ---
 
@@ -685,6 +749,19 @@ python scripts/apply_ai_collab.py /path/to/existing-project
 
 **비전**:
 여러 AI가 협업하여 1인 개발자도 엔터프라이즈급 품질의 소프트웨어를 개발할 수 있는 환경을 제공합니다.
+
+---
+
+## 22. 권장 개발 로드맵 (PR 단위)
+
+상세 PR 계획은 다음 문서를 기준으로 운영한다:
+
+- `docs/ROADMAP_PR_UNITS.md`
+
+운영 원칙:
+- 한 PR = 한 목적
+- 문서와 코드 계약을 함께 변경
+- 안정성/비용/유지보수 항목을 PR 체크리스트에 포함
 
 ---
 

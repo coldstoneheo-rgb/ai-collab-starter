@@ -6,6 +6,7 @@ Defines common data structures used across the system.
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from ai.utils.safety_policy import detect_sensitive_paths
 
 
 @dataclass
@@ -86,15 +87,7 @@ class PRInfo:
 
     def has_sensitive_changes(self) -> bool:
         """Check if PR contains changes to sensitive paths."""
-        sensitive_prefixes = (
-            'migrations/', 'infra/', 'terraform/', 'k8s/',
-            'security/', 'auth/', 'payments/', '.github/workflows/',
-            'db/', '.env'
-        )
-        for path in self.get_changed_paths():
-            if any(path.startswith(prefix) for prefix in sensitive_prefixes):
-                return True
-        return False
+        return len(detect_sensitive_paths(self.get_changed_paths())) > 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""

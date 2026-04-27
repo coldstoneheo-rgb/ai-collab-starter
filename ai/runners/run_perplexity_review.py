@@ -9,7 +9,7 @@ def send_to_perplexity(prompt, api_key):
     return "# Compliance: No immediate risk found."
 
 def main():
-    tpl = Path('.github/AI_PROMPTS/perplexity_compliance.txt').read_text()
+    tpl = Path('.github/AI_PROMPTS/perplexity_compliance_v1.txt').read_text()
     docs = fetch_top_k("compliance", k=5)
     prompt = tpl + "\n\nContext:" + "\n".join([d['path'] for d in docs])
     resp = send_to_perplexity(prompt, "")

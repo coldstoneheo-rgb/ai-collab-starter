@@ -8,13 +8,17 @@ import sys
 from typing import Optional, List
 from datetime import datetime
 
+IMPORT_ERROR = None
 try:
     from github import Github, GithubException
     from github.PullRequest import PullRequest
     from github.Repository import Repository
 except ImportError:
-    print("⚠️ PyGithub not installed. Install with: pip install PyGithub")
-    sys.exit(1)
+    IMPORT_ERROR = "PyGithub not installed. Install with: pip install PyGithub"
+    Github = None
+    GithubException = Exception
+    PullRequest = object
+    Repository = object
 
 from ai.utils.models import PRInfo, FileChange, Comment
 
@@ -30,6 +34,9 @@ class PRCollector:
             token: GitHub personal access token (default: GITHUB_TOKEN env var)
             repo_name: Repository name in format 'owner/repo' (default: auto-detect from git remote)
         """
+        if Github is None:
+            raise RuntimeError(IMPORT_ERROR or "PyGithub import failed")
+
         self.token = token or os.getenv('GITHUB_TOKEN')
         if not self.token:
             raise ValueError("GitHub token not provided. Set GITHUB_TOKEN env var or pass token parameter.")
