@@ -8,7 +8,7 @@ AI의 기본 판단보다 우선
 
 편의성보다 우선
 
-2. Codex/Codex/GPT 공통 금지 목록 (확장)
+2. Claude Code/Codex/GPT 공통 금지 목록 (확장)
 ❌ 절대 금지
 
 workflow에서 if:로 판단 로직 추가
@@ -74,14 +74,14 @@ Codex는:
 
 ### 7.1 기본 원칙
 
-> **Codex = Main Project Manager (PM / Orchestrator)**
+> **Claude Code = Main Project Manager (PM / Orchestrator)**
 > **다른 AI들 = Execution & Analysis Agents**
 
 ### 7.2 AI별 역할 및 특성
 
 | AI | 역할 | 책임 | 특장점 |
 |---|---|---|---|
-| **Codex** | Main PM / Orchestrator | PRD/AGENTS.md 관리, 기능 우선순위, 아키텍처 리뷰, 논리/보안 검증, 최종 merge 승인 | 창의성, 논리력, 프로젝트 기획과 관리, 직관적인 코드 디버깅 |
+| **Claude Code** | Main PM / Orchestrator | PRD/CLAUDE.md 관리, 기능 우선순위, 아키텍처 리뷰, 논리/보안 검증, 최종 merge 승인 | 창의성, 논리력, 프로젝트 기획과 관리, 직관적인 코드 디버깅 |
 | **Gemini** | Frontend Lead / Multi-perspective Analyst | UI/UX 설계, 컴포넌트 구조, 멀티 페르소나 분석, 프론트엔드 성능 시뮬레이션 | 프론트엔드 디자인, 멀티 태스킹(다양한 관점에서 동시 분석) |
 | **Perplexity** | Compliance Lead / Researcher | 법률/규제 검토, 정책 체크, 리스크 분석, 시장 조사 | 최신 정보 검색, 컴플라이언스 검증 |
 | **GPT** | Backend Engineer / Documentation | API 설계, 데이터베이스 스키마, 인프라, DevOps, 문서화 | 백엔드 로직, 데이터 모델링, 기술 문서 작성 |
@@ -97,7 +97,7 @@ project_name: your-project-name
 
 team:
   pm:
-    agent: Codex
+    agent: claude
     responsibilities:
       - product_requirement
       - acceptance_criteria
@@ -146,7 +146,7 @@ rules:
 | 모드 | 사용 조건 | 동작 | 비용 |
 |---|---|---|---|
 | **Lite** | 작은 스크립트, 단순 문서, 개인 프로젝트 | Codex 또는 GPT 한 모델만, 리뷰/autofix 없음, RAG 없음 | 저비용 |
-| **Pro** | 일반 앱/웹/백엔드, 적당한 규모 | Codex(PM) + GPT(문서/테스트) + Perplexity(리서치), RAG 최소, PR 리뷰 자동화 | 중간 |
+| **Pro** | 일반 앱/웹/백엔드, 적당한 규모 | Claude Code(PM) + GPT(문서/테스트) + Perplexity(리서치), RAG 최소, PR 리뷰 자동화 | 중간 |
 | **Enterprise** | 대규모 모듈, 팀 프로젝트, 민감 데이터 | 모든 AI 병렬 협업, 고정밀 PR 리뷰, RAG full, 위험 작업 human-in-loop | 높음 |
 
 ### 8.2 모드 결정 기준
@@ -264,9 +264,9 @@ else:
 ### 11.2 AI 간 충돌 해결 정책
 
 **우선순위:**
-1. 보안/법규 이슈 → Codex(PM) 최종 결정
+1. 보안/법규 이슈 → Claude Code(PM) 최종 결정
 2. UX/시각적 이슈 → Gemini 우선
-3. 기술 스택 선택 → Codex(PM) + GPT 합의
+3. 기술 스택 선택 → Claude Code(PM) + GPT 합의
 4. 컴플라이언스 → Perplexity 우선
 
 **Dispute Resolution:**

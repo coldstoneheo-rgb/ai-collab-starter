@@ -46,40 +46,28 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "🔍 Running router decision..."
-          DECISION_OUTPUT="$(python - <<'PY'
+          python - <<'PY'
           import json
           import os
           import sys
 
-          # Add workspace to path
           sys.path.insert(0, os.getcwd())
 
           from ai.router import decide_mode
 
-          # Run decision
           decision = decide_mode('.')
 
-          # Log decision
           print(f"✅ Mode decided: {decision.mode}")
           print(f"✅ Enabled agents: {decision.enabled_agents}")
           print(f"✅ Autofix allowed: {decision.autofix_allowed}")
           print(f"✅ Reason: {decision.reason}")
 
-          print(f"mode={decision.mode}")
-          print(f"enabled_agents={json.dumps(decision.enabled_agents)}")
-          print(f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}")
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write(f"mode={decision.mode}\n")
+              handle.write(f"enabled_agents={json.dumps(decision.enabled_agents)}\n")
+              handle.write(f"autofix_allowed={'true' if decision.autofix_allowed else 'false'}\n")
           PY
-          )"
-
-          while IFS= read -r line; do
-            case "$line" in
-              mode=*|enabled_agents=*|autofix_allowed=*)
-                echo "$line" >> "$GITHUB_OUTPUT"
-                ;;
-            esac
-          done <<EOF
-          $DECISION_OUTPUT
-          EOF
 
   claude_review:
     needs: router

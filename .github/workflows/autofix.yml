@@ -16,14 +16,7 @@ jobs:
         env:
           GPT_API_KEY: ${{ secrets.GPT_API_KEY }}
         run: python ai/runners/run_autofix.py
-      - name: Commit AutoFix
+      - name: Report AutoFix Result
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No autofix changes to commit"
-            exit 0
-          fi
-          git commit -m "chore: apply AI autofix"
-          git push
+          echo "✅ AutoFix check complete. Manual review required to apply changes."
+          echo "ℹ️ Auto-push to main is disabled per CLAUDE.md §12.1."
