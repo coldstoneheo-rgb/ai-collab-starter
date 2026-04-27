@@ -12,12 +12,13 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt || echo "⚠️ requirements.txt not found, skipping..."
+          pip install -r requirements.txt
       - name: Build RAG index
-        run: python ai/context7/indexer.py || echo "⚠️ Indexing skipped"
+        run: python ai/context7/indexer.py
 
   router:
     needs: index
@@ -34,10 +35,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil || echo "Installing minimal deps..."
+          pip install pyyaml python-dateutil
       - name: Run router decision
         id: decide
         env:
@@ -49,21 +51,17 @@ jobs:
           import os
           import sys
 
-          # Add workspace to path
           sys.path.insert(0, os.getcwd())
 
           from ai.router import decide_mode
 
-          # Run decision
           decision = decide_mode('.')
 
-          # Log decision
           print(f"✅ Mode decided: {decision.mode}")
           print(f"✅ Enabled agents: {decision.enabled_agents}")
           print(f"✅ Autofix allowed: {decision.autofix_allowed}")
           print(f"✅ Reason: {decision.reason}")
 
-          # Write outputs
           output_path = os.environ["GITHUB_OUTPUT"]
           with open(output_path, "a", encoding="utf-8") as handle:
               handle.write(f"mode={decision.mode}\n")
@@ -81,17 +79,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil || true
+          pip install pyyaml python-dateutil
       - name: Run Claude Review
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "🤖 Running Claude PM Review (mode: ${{ needs.router.outputs.mode }})"
-          python ai/runners/run_claude_review.py --pr-number ${{ github.event.pull_request.number }} || echo "⚠️ Claude review failed (runner is stub)"
+          python ai/runners/run_claude_review.py --pr-number ${{ github.event.pull_request.number }}
       - name: Comment result
         if: always()
         run: echo "✅ Claude review job completed"
@@ -106,17 +105,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil || true
+          pip install pyyaml python-dateutil
       - name: Run Gemini Review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "🎨 Running Gemini UI/UX Review (mode: ${{ needs.router.outputs.mode }})"
-          python ai/runners/run_gemini_review.py || echo "⚠️ Gemini review failed (runner is stub)"
+          python ai/runners/run_gemini_review.py
       - name: Comment result
         if: always()
         run: echo "✅ Gemini review job completed"
@@ -131,17 +131,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil || true
+          pip install pyyaml python-dateutil
       - name: Run Perplexity Review
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "⚖️ Running Perplexity Compliance Review (mode: ${{ needs.router.outputs.mode }})"
-          python ai/runners/run_perplexity_review.py || echo "⚠️ Perplexity review failed (runner is stub)"
+          python ai/runners/run_perplexity_review.py
       - name: Comment result
         if: always()
         run: echo "✅ Perplexity review job completed"

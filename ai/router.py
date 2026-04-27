@@ -54,8 +54,20 @@ def decide_mode(repo_path='.', user_force_mode=None):
     # 3) cost check
     cost = check_budget()
 
+    if cost.get('budget_exceeded', False):
+        raise RuntimeError(
+            f"Budget exceeded: ${cost.get('monthly_spent_usd', 0)} / ${cost.get('monthly_budget_usd', 0)}"
+        )
+
     # 4) rule-based decision
     if _touches_sensitive_paths(info.get('changed_paths')):
+        if cost.get('budget_warning', False):
+            return RouterDecision(
+                mode='pro',
+                enabled_agents=mode_map['pro'],
+                reason='sensitive paths touched but enterprise blocked by budget warning',
+                autofix_allowed=_autofix_permission('pro')
+            )
         return RouterDecision(
             mode='enterprise',
             enabled_agents=mode_map['enterprise'],
@@ -67,6 +79,13 @@ def decide_mode(repo_path='.', user_force_mode=None):
         return RouterDecision(mode='lite', enabled_agents=mode_map['lite'], reason='low budget', autofix_allowed=_autofix_permission('lite'))
 
     if info.get('is_enterprise', False) or info.get('has_payment', False) or info.get('touches_personal_data', False):
+        if cost.get('budget_warning', False):
+            return RouterDecision(
+                mode='pro',
+                enabled_agents=mode_map['pro'],
+                reason='enterprise signals but enterprise blocked by budget warning',
+                autofix_allowed=_autofix_permission('pro')
+            )
         return RouterDecision(mode='enterprise', enabled_agents=mode_map['enterprise'], reason='enterprise signals', autofix_allowed=_autofix_permission('enterprise'))
 
     if info.get('has_ui', False) or info.get('code_files', 0) > 50:
