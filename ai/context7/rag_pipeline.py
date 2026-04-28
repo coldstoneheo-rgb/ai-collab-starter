@@ -3,8 +3,17 @@ import json
 from typing import List
 
 def load_index(path='ai/context7/index.json'):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    """
+    Load the RAG index from JSON file.
+    Returns empty list if file doesn't exist (e.g., in isolated job runners).
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Index file not found - return empty list
+        # This can happen when jobs run in separate GitHub Actions runners
+        return []
 
 def fetch_top_k(query: str, k=5, index_path='ai/context7/index.json'):
     docs = load_index(index_path)

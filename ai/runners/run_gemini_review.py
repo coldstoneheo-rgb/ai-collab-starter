@@ -10,7 +10,7 @@ def send_to_gemini(prompt, api_key):
     return "# UI/UX OK\n- No issues detected."
 
 def main():
-    tpl = Path('.github/AI_PROMPTS/gemini_uiux.txt').read_text()
+    tpl = Path('.github/AI_PROMPTS/gemini_uiux_v1.txt').read_text()
     docs = fetch_top_k("ui", k=5)
     prompt = tpl + "\n\nContext:\n" + "\n".join([d['path'] for d in docs])
     resp = send_to_gemini(prompt, os.getenv('GEMINI_API_KEY',''))
