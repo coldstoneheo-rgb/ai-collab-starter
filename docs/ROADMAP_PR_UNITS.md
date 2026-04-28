@@ -1,6 +1,6 @@
 # AI-Collab-Starter 권장 개발 로드맵 (PR 단위)
 
-기준일: 2026-04-23  
+기준일: 2026-04-28  
 우선순위: 안정성 > 비용 > 유지보수 > 기능 확장
 
 ## 0. 전제
@@ -99,11 +99,72 @@
 
 위 기준을 만족하지 못하면 자동화 확대(PR-009 이후)는 진행하지 않는다.
 
-## 5. 보류/금지 항목
+## 5. Phase 3: 선별적 자동화 (P3 진입 후)
+
+> **전제**: Phase 2 Gate 기준 모두 충족 후 진입. 상세 계획은 `docs/PHASE3_PLAN.md` 참조.
+
+### PR-P2-FIN-01 나머지 AI 클라이언트 구현
+- 목적: Gemini, Perplexity, GPT 클라이언트 완성으로 전체 AI 팀 활성화
+- 변경: `ai/runners/clients/gemini_client.py`, `perplexity_client.py`, `gpt_client.py`
+- 완료 기준: 각 클라이언트 AIClient ABC 계약 준수, 테스트 통과
+
+### PR-P2-FIN-02 Chroma RAG 통합
+- 목적: 키워드 검색을 벡터 임베딩 기반으로 교체
+- 변경: `ai/context7/chroma_pipeline.py`, `requirements.txt`
+- 완료 기준: `fetch_top_k()` 인터페이스 유지, Actions index job 성공
+
+### PR-P2-FIN-03 Cost Monitor Service
+- 목적: 예산 임계치 알림 및 자동 차단 강화
+- 변경: `ai/utils/cost_monitor.py`, `.github/workflows/ai_nightly.yml`
+- 완료 기준: 80% 경고, 100% 차단 동작 확인
+
+### PR-P3-001 저위험 변경 분류기
+- 목적: 자동 merge 대상 여부 판단 로직
+- 변경: `ai/utils/risk_classifier.py`
+- 완료 기준: 민감 경로 항상 high_risk, 테스트 커버리지 ≥ 70%
+
+### PR-P3-002 Auto-merge Feature Flag 인프라
+- 목적: 자동 merge를 feature flag로 제어하는 안전한 인프라
+- 변경: `ai/utils/feature_flags.py`, `.ai/config.yml`
+- 완료 기준: 기본 비활성화, kill-switch 연동
+
+### PR-P3-003 Canary Rollout 시스템
+- 목적: PR 5% 샘플링으로 자동 merge 실험
+- 변경: `ai/utils/canary_sampler.py`
+- 완료 기준: 결정적 샘플링, 5회 canary 성공 확인
+
+### PR-P3-004 Auto-revert 메커니즘
+- 목적: 자동 merge 후 CI 실패 시 자동 rollback
+- 변경: `ai/utils/auto_reverter.py`, `.github/workflows/auto_revert.yml`
+- 완료 기준: CI 실패 후 5분 내 revert PR 생성, audit 기록
+
+### PR-P3-005 Router 지능 확장
+- 목적: 비용 잔여량에 따라 모드 자동 조정
+- 변경: `ai/router.py` (비용 기반 fallback 로직)
+- 완료 기준: 예산 20% 미만 시 lite 강제, router 계약 구조 변경 없음
+
+### PR-P3-006 SAST 통합
+- 목적: Python 보안 취약점 자동 스캔
+- 변경: `.github/workflows/sast.yml`
+- 완료 기준: bandit HIGH 0건, PR 시 자동 실행
+
+### PR-P3-007 운영 메트릭 대시보드
+- 목적: Phase 3 Gate 수치 측정 자동화
+- 변경: `scripts/metrics_dashboard.py`, `.github/workflows/weekly_report.yml`
+- 완료 기준: 주간 리포트 자동 생성, Gate 임박 경고
+
+## 6. Phase 3 완료 게이트
+
+- AI 패치 테스트 커버리지 ≥ 70%
+- Auto-revert 검증 완료 (5회 이상 canary 성공)
+- SAST 통과 (bandit HIGH 0건)
+- AI 제안 거부율 ≤ 20%
+
+## 7. 보류/금지 항목
 
 - AI-to-AI 릴레이 토론 자동화
 - push 기반 autofix commit/push
-- 사람 승인 없는 자동 merge
+- 코드 변경 PR의 사람 승인 없는 자동 merge
 - 자동 패키지 매니저
 - serverless hyper-router 도입
 

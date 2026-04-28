@@ -1,239 +1,122 @@
 # HANDOFF.md
 
 ## Project
-ai-collab-starter  
-Multi-AI collaboration system for GitHub-based development  
-(Claude PM, Gemini FE, Perplexity Research/Compliance, GPT Core Logic)
+
+ai-collab-starter
+Multi-AI collaboration system for GitHub-based development
+(Claude PM, Gemini FE, Perplexity Compliance, GPT Backend)
+
+---
 
 ## Current Phase
-**Phase 1 — Safe Modular System (ACTIVE)**
 
-This project is intentionally NOT fully automated yet.
-The current goal is to deliver value fast on real projects
-while minimizing risk, cost explosion, and architectural entanglement.
+**Phase 2 — Stabilization & RAG Upgrade (진행 중)**
 
-## Strategic Direction (Authoritative)
+Phase 1 (Safe Modular System)은 완료됨.
+Phase 2 코어 구현은 `claude/phase2-pr-collector-Zf1Dg` 브랜치에 완료, main merge 대기 중.
+
+---
+
+## Phase 2 완료 항목 (branch: claude/phase2-pr-collector-Zf1Dg)
+
+| 항목 | 파일 | 상태 |
+|---|---|---|
+| PR Collector | `ai/utils/pr_collector.py` | ✅ |
+| Data Models | `ai/utils/models.py` | ✅ |
+| Base AI Client | `ai/runners/clients/base_client.py` | ✅ |
+| Claude Client | `ai/runners/clients/claude_client.py` | ✅ |
+| Audit Logger | `ai/utils/audit_logger.py` | ✅ |
+| Safety Policy | `ai/utils/safety_policy.py` | ✅ |
+| Prompt Loader | `ai/utils/prompt_loader.py` | ✅ |
+| Test Suite | `tests/` (37 tests) | ✅ |
+| CLAUDE.md 위반 수정 | workflows, AGENTS.md | ✅ |
+
+## Phase 2 미완료 항목 (main merge 후 구현 필요)
+
+| 항목 | 파일 | 우선순위 |
+|---|---|---|
+| Gemini Client | `ai/runners/clients/gemini_client.py` | P0 |
+| Perplexity Client | `ai/runners/clients/perplexity_client.py` | P0 |
+| GPT Client | `ai/runners/clients/gpt_client.py` | P0 |
+| Chroma RAG 통합 | `ai/context7/chroma_pipeline.py` | P1 |
+| Cost Monitor Service | `ai/utils/cost_monitor.py` | P1 |
+
+---
+
+## 다음 즉시 수행 작업 (Ordered)
+
+1. `claude/phase2-pr-collector-Zf1Dg` → main PR 생성 및 merge
+2. Gemini / Perplexity / GPT Client 구현 (PR-P2-FIN-01)
+3. Chroma RAG 통합 (PR-P2-FIN-02)
+4. Cost Monitor Service 구현 (PR-P2-FIN-03)
+5. Phase 2 Gate 기준 달성 확인 → Phase 3 진입
+
+---
+
+## Strategic Direction
 
 ### Long-term Goal
-Evolve into a **Fully Automated AI Development Environment**
-(Hyper-router, multi-agent orchestration, minimal human intervention).
+Fully Automated AI Development Environment (Hyper-router, multi-agent orchestration, minimal human intervention).
 
-### Current Priority (DO NOT SKIP)
-Build a **Safe Modular System first**, then mature in controlled phases.
-
-This is a deliberate risk-control strategy.
+### Current Priority
+Phase 2 안정화 우선. Gate 기준 충족 전까지 Phase 3 자동화 작업 시작 금지.
 
 ### Core Principles
-- Start small, expand safely
 - One decision point only (router)
 - Router decides, runners execute
-- Execution logic must stay modular
-- Human-in-the-loop is mandatory in early phases
-- Cost, safety, and auditability are first-class concerns
-
-### Fixed Modes (Do Not Add More)
-- lite
-- pro
-- enterprise
-
-## Phased Roadmap (Locked Concept)
-
-### Phase 1 — Safe Modular System (CURRENT)
-**Goal**
-- Deploy to real projects quickly
-- Prove value without structural risk
-
-**Rules**
-- Router only decides (no execution logic)
-- GitHub Actions execute conditionally
-- No autofix merge
-- All AI prompts and outputs logged
-- Human approval required for all code changes
-
-**Key Deliverables**
-- ai/router.py
-- ai/plugins/*
-- Conditional AI workflows
-- Claude PR review with diff + RAG
-- Audit logging
+- Human-in-the-loop mandatory
+- Cost, safety, auditability are first-class
 
 ---
 
-### Phase 2 — Stabilization & RAG Upgrade
-**Goal**
-- Improve accuracy and observability
-
-**Planned**
-- Chroma-based vector RAG
-- Improved PR diff & context extraction
-- Cost monitoring + alerts
-- Prompt versioning via PR
-- AI disagreement report (compare & escalate)
-
----
-
-### Phase 3 — Selective Automation
-**Goal**
-- Carefully test automation where risk is low
-
-**Planned**
-- Auto-merge ONLY for low-risk fixes (lint, format, docs)
-- Canary rollout (≤5% of PRs)
-- Auto-rollback on CI failure
-- Cost-aware router decisions
-
----
-
-### Phase 4 — Full AI Dev Studio (FUTURE)
-**Goal**
-- End-to-end AI-driven development loop
-
-**Planned**
-- Hyper-router
-- Serverless orchestration backend
-- Autonomous PR generation loops
-- Advanced audit & explainability UI
-- Legal & ethical compliance layer
-
-### Important Warning
-Any attempt to:
-- Introduce full automation early
-- Add intelligence into GitHub Actions instead of router
-- Remove human-in-the-loop prematurely
-
-is considered a **design regression**.
-
-## Current Next Tasks (Ordered)
-1. Add PR diff support to Gemini runner
-2. Block autofix automatically in enterprise mode
-3. Upgrade RAG to Chroma-based indexing
-
-## Safety & Governance Checklist (MANDATORY)
-
-The following rules are non-negotiable and must always be enforced.
+## Safety & Governance Checklist
 
 ### Branch & Review Protection
-- Branch protection enabled
-- Require ≥ 1 human PR review
-- AI-generated PRs must never bypass human review
+- [x] Branch protection enabled (main)
+- [x] Require ≥ 1 human PR review
+- [x] AI-generated PRs must never bypass human review
 
 ### Required Status Checks
-- claude-check (always required)
-- gemini-check (required for pro / enterprise)
-- perplexity-check (optional, enterprise only)
+- claude-check (항상 필수)
+- gemini-check (pro / enterprise)
+- perplexity-check (enterprise only)
 
 ### Autofix Rules
-- Autofix PRs are **non-mergeable by bots**
-- Auto-merge is disabled by default
-- Auto-merge can only be enabled via explicit feature flag
-- Even with auto-merge enabled, sensitive paths are excluded
+- Autofix PRs: 봇이 merge 불가
+- Auto-merge: 기본 비활성화
+- 민감 경로 포함 PR: autofix 생성 자체 금지
 
 ### Audit & Logging
-- All AI prompts and outputs must be logged
-- Logs are append-only (immutable)
-- Logs must be retained for at least 90 days
-
-### Sensitive Paths Protection
-If an AI-generated patch touches any of the following:
-- DB migrations
-- Infrastructure code
-- Secrets / auth
-- Payment or billing logic
-
-→ **All auto actions are blocked**
-
-### Cost Guard
-- Heavy model calls are blocked if monthly budget exceeds threshold
-- Budget is enforced before AI execution, not after
-
-### Prompt Governance
-- Prompt templates are code
-- Prompt changes must go through PR review
+- 모든 AI 프롬프트/응답 로깅 필수
+- Logs는 append-only
+- 90일 이상 보관
 
 ### Emergency Kill Switch
-- Repo secret: `DISABLE_AI_AUTOMATION=true`
-- When enabled:
-  - Router returns no agents
-  - All AI jobs are skipped
+- Repo Secret: `DISABLE_AI_AUTOMATION=true`
+- 활성화 시: Router가 no agents 반환, 모든 AI job skip
 
-## Mode Decision Policy
-
-### Manual Override
-- Mode can be pinned via:
-  - `.ai/config.yml`
-  - Repo secret: `AI_FORCE_MODE`
-
-### Router Inputs
-From project_scan plugin:
-- is_large
-- has_ui
-- has_payment
-- touches_personal_data
-
-From cost_checker plugin:
-- low_budget (boolean)
-
-### Router Output
-- mode: lite | pro | enterprise
-- enabled_ai_list (e.g. ['claude', 'gpt'])
-
-### Design Rule
-- Router logic must remain simple and explainable
-- No ML-based decision-making at this stage
+---
 
 ## PR Action Flow (Safe Mode)
 
-1. PR opened
-2. ai_review workflow triggers
-3. index_and_scan step:
-   - Loads or builds Chroma index
-   - Runs project_scan plugin
-4. Router invoked with:
-   - project_info
-   - cost_status
-5. Router returns:
-   - mode
-   - list of AI agents to run
-6. Workflow triggers ONLY selected AI jobs
-7. Each agent:
-   - Logs prompt & response to ai/logs/
-   - Posts PR comment
-8. If autofix generates patch:
-   - Creates ai/autofix/* branch
-   - Opens PR
-   - Auto-merge is disabled
-9. If any agent reports critical issue:
-   - Status check fails
-   - Human notification (Slack / email)
-10. Human reviews and merges or requests changes
+1. PR opened → ai_review workflow 트리거
+2. `index` job: RAG 인덱스 빌드
+3. `router` job: 프로젝트 스캔 → 모드/에이전트 결정
+4. 선택된 AI job만 실행 (claude → gemini → perplexity)
+5. 각 agent: 프롬프트/응답 로깅 + PR 코멘트 게시
+6. Human이 리뷰하고 merge 결정
 
-## Monitoring Metrics
+---
 
-### Cost Metrics
-- Cost per PR
-- Cost per day
-- Monthly spend per model
+## Document Map
 
-### Effectiveness Metrics
-- AI suggestion acceptance rate
-- Human override rate
-
-### Reliability Metrics
-- Workflow success rate
-- Runner error rate
-
-### Safety Metrics
-- Number of blocked auto-merges
-- Incidents (data leak, infra changes)
-
-### Latency Metrics
-- Average AI review time per PR
-
-## Operating Tips
-
-- Prompt changes must go through PR review
-- Start with a fixed monthly budget and adjust based on real PR cost
-- Pin mode via `.ai/config.yml` during early rollout
-- Retain AI logs for at least 90 days
-- Train developers:
-  "AI-generated PRs must be reviewed by humans"
+| 문서 | 역할 |
+|---|---|
+| `CLAUDE.md` | **최우선 규칙 (법)** |
+| `AGENTS.md` | AI 팀 역할 및 거버넌스 가이드 |
+| `PRD.md` | 제품 요구사항 및 운영 원칙 |
+| `DECISIONS.md` | 아키텍처 결정 이유 |
+| `HANDOFF.md` | 현재 Phase 상태 및 다음 작업 (이 문서) |
+| `docs/ROADMAP_PR_UNITS.md` | PR 단위 실행 계획 |
+| `docs/PHASE3_PLAN.md` | Phase 3 상세 계획 |
+| `docs/AI_COLLAB_GUIDE.md` | 로컬 설정 및 운영 가이드 |

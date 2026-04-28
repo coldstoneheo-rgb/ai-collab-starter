@@ -4,7 +4,7 @@ This guide explains how to run and operate `ai-collab-starter` in a controlled, 
 
 ## 1. Operating principles
 
-- `AGENTS.md` is the highest-priority rulebook.
+- `CLAUDE.md` is the highest-priority rulebook. `AGENTS.md` defines AI team roles.
 - Router decides mode and enabled agents.
 - Workflow executes router outputs and should not add new decision logic.
 - Human approval remains mandatory for risky changes.
