@@ -44,11 +44,8 @@ def test_log_and_load_events(monkeypatch):
 def test_build_daily_summary(monkeypatch):
     tmp_root = _workspace_tmp_dir("audit_case_2")
     monkeypatch.setattr(audit_logger, "LOG_ROOT", tmp_root / "logs")
-    day = "2026-04-23"
-    target = audit_logger.LOG_ROOT / day
-    target.mkdir(parents=True, exist_ok=True)
 
-    audit_logger.log_ai_event(
+    path1 = audit_logger.log_ai_event(
         agent="claude",
         pr_number=1,
         status="success",
@@ -65,8 +62,8 @@ def test_build_daily_summary(monkeypatch):
         error_message="boom",
     )
 
-    # Use current day from first write for deterministic checks
-    actual_day = next((audit_logger.LOG_ROOT).iterdir()).name
+    # Derive actual_day from the written path to avoid date mismatch
+    actual_day = path1.parent.name
     summary = audit_logger.build_daily_summary(day=actual_day)
     assert summary["event_count"] == 2
     assert summary["success_count"] == 1
