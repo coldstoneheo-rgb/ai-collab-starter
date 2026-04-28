@@ -10,14 +10,17 @@ This project prioritizes:
 
 ## Current state
 
-- Phase 1 baseline is in progress.
-- Router-based mode decision is implemented.
-- Workflow skeleton for Claude/Gemini/Perplexity review exists.
-- Some runners are still under stabilization and documented in the roadmap.
+- Phase 1 (Safe Modular System): ✅ Complete
+- Phase 2 (Stabilization & RAG Upgrade): 🔄 In progress
+  - Core implementation on `claude/phase2-pr-collector` branch, pending main merge
+  - Remaining: Gemini/Perplexity/GPT clients, Chroma RAG, Cost monitor
+- Phase 3 planning complete. Starts after Phase 2 Gate criteria met.
 
 See:
-- `AGENTS.md` for hard rules (highest priority).
+- `CLAUDE.md` for hard rules (highest priority).
+- `AGENTS.md` for AI team roles and governance.
 - `PRD.md` for product direction and operating constraints.
+- `HANDOFF.md` for current phase status and next tasks.
 - `docs/ROADMAP_PR_UNITS.md` for PR-by-PR execution plan.
 
 ## Repository layout
@@ -106,7 +109,7 @@ Current workflows:
 Notes:
 - `ai_review.yml` is the main PR review pipeline.
 - `autofix.yml` exists but is considered high risk and should be treated conservatively.
-- Governance rules in `AGENTS.md` take precedence over convenience.
+- Governance rules in `CLAUDE.md` take precedence over convenience.
 
 ## Configuration files
 
