@@ -6,7 +6,6 @@ Collects PR information, generates review prompt, calls Claude API, and posts co
 import os
 import sys
 import argparse
-import json
 from pathlib import Path
 
 # Add project root to path
@@ -18,41 +17,7 @@ from ai.runners.clients.claude_client import ClaudeClient
 from ai.runners.clients.base_client import AIClientError, APIKeyMissingError
 from ai.utils.audit_logger import log_ai_event
 from ai.utils.safety_policy import MANUAL_APPROVAL_REQUIRED_MSG
-
-
-def update_cost_tracker(cost_usd: float):
-    """
-    Update cost tracking budget file.
-
-    Args:
-        cost_usd: Cost in USD to add
-    """
-    budget_file = Path('.ai/budget.json')
-
-    if not budget_file.exists():
-        print(f"⚠️ Budget file not found: {budget_file}")
-        return
-
-    try:
-        with open(budget_file, 'r') as f:
-            budget = json.load(f)
-
-        # Update Claude cost
-        budget['cost_tracking']['claude'] = budget.get('cost_tracking', {}).get('claude', 0) + cost_usd
-        budget['monthly_spent_usd'] = budget.get('monthly_spent_usd', 0) + cost_usd
-
-        with open(budget_file, 'w') as f:
-            json.dump(budget, f, indent=2)
-
-        print(f"💰 Cost updated: +${cost_usd:.6f}")
-        print(f"   Total spent: ${budget['monthly_spent_usd']:.6f} / ${budget['monthly_budget_usd']}")
-
-        # Check budget warning
-        if budget['monthly_spent_usd'] > budget['monthly_budget_usd'] * 0.8:
-            print(f"⚠️ WARNING: 80% of monthly budget used!")
-
-    except Exception as e:
-        print(f"⚠️ Failed to update cost tracker: {e}")
+from ai.utils.cost_monitor import record_cost, BudgetExceededError
 
 
 def main():
@@ -156,8 +121,32 @@ def main():
         )
         sys.exit(1)
 
-    # Step 3: Send to Claude API
-    print("🧠 Step 3: Sending to Claude API...")
+    # Step 3: Check budget before API call
+    if not args.dry_run:
+        print("💰 Step 3: Checking budget...")
+        try:
+            from ai.utils.cost_monitor import get_budget_status
+            budget_status = get_budget_status()
+            if budget_status["is_over_budget"]:
+                print(f"   ❌ Budget exhausted: ${budget_status['monthly_spent_usd']:.2f} / ${budget_status['monthly_budget_usd']:.2f}")
+                log_ai_event(
+                    agent="claude",
+                    pr_number=args.pr_number,
+                    status="failed",
+                    decision_reason=decision_reason,
+                    error_type="budget_exceeded",
+                    error_message="Monthly budget exhausted",
+                    tags=["runner", "claude", "failure", "budget"],
+                )
+                sys.exit(1)
+            print(f"   ✅ Budget OK: ${budget_status['remaining_usd']:.2f} remaining ({budget_status['usage_pct']:.1f}% used)")
+            print()
+        except Exception as e:
+            print(f"   ⚠️ Budget check failed: {e}")
+            print()
+
+    # Step 4: Send to Claude API
+    print("🧠 Step 4: Sending to Claude API...")
     try:
         client = ClaudeClient()
         print(f"   📡 Using model: {client.model}")
@@ -208,9 +197,9 @@ def main():
         )
         sys.exit(1)
 
-    # Step 4: Post comment to PR
+    # Step 5: Post comment to PR
     if args.post_comment and not args.dry_run:
-        print("💬 Step 4: Posting review comment...")
+        print("💬 Step 5: Posting review comment...")
         comment_posted = False
         try:
             # Format review comment
@@ -237,21 +226,29 @@ def main():
             # Don't exit - we still want to update costs
             print()
     elif args.dry_run:
-        print("💬 Step 4: Posting review comment...")
+        print("💬 Step 5: Posting review comment...")
         print("   ⏭️ Skipped (dry run)")
         print()
     else:
-        print("💬 Step 4: Posting review comment...")
+        print("💬 Step 5: Posting review comment...")
         print("   ⏭️ Skipped (--no-post-comment)")
         print()
 
-    # Step 5: Update cost tracker
+    # Step 6: Update cost tracker
     if not args.dry_run:
-        print("💰 Step 5: Updating cost tracker...")
-        update_cost_tracker(response.cost_usd)
-        print()
+        print("💰 Step 6: Updating cost tracker...")
+        try:
+            record_cost("claude", response.cost_usd)
+            print(f"   ✅ Cost recorded: ${response.cost_usd:.6f}")
+            print()
+        except BudgetExceededError as e:
+            print(f"   ⚠️ Budget exceeded after this call: {e}")
+            print()
+        except Exception as e:
+            print(f"   ⚠️ Failed to update cost tracker: {e}")
+            print()
     else:
-        print("💰 Step 5: Updating cost tracker...")
+        print("💰 Step 6: Updating cost tracker...")
         print("   ⏭️ Skipped (dry run)")
         print()
 
