@@ -28,12 +28,11 @@ class GeminiClient(AIClient):
     Gemini API client for UI/UX and multi-perspective review.
 
     Uses Google's GenerativeAI SDK.
-    Default model: gemini-2.0-flash
+    Default model: gemini-flash-lite-latest (→ gemini-2.5-flash-lite)
 
     Pricing (as of 2026):
-    - Input: $0.075 per 1M tokens (≤128k), $0.15 per 1M (>128k)
-    - Output: $0.30 per 1M tokens (≤128k), $0.60 per 1M (>128k)
-    Using blended average for simplicity.
+    - Input:  $0.10 per 1M tokens
+    - Output: $0.40 per 1M tokens
     """
 
     COST_PER_1M_INPUT = 0.10
@@ -43,7 +42,7 @@ class GeminiClient(AIClient):
         return os.getenv('GEMINI_API_KEY')
 
     def _get_default_model(self) -> str:
-        return "gemini-2.0-flash"
+        return "gemini-flash-lite-latest"
 
     def _initialize_client(self):
         genai.configure(api_key=self.api_key)
@@ -110,5 +109,4 @@ class GeminiClient(AIClient):
         return "gemini"
 
     def get_model_token_limit(self) -> int:
-        # gemini-2.0-flash has 1M token context window
         return 1_000_000
