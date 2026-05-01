@@ -110,14 +110,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil
+          pip install pyyaml python-dateutil PyGithub google-generativeai>=0.3.0
       - name: Run Gemini Review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "🎨 Running Gemini UI/UX Review (mode: ${{ needs.router.outputs.mode }})"
-          python ai/runners/run_gemini_review.py
+          python ai/runners/run_gemini_review.py --pr-number ${{ github.event.pull_request.number }}
       - name: Comment result
         if: always()
         run: echo "✅ Gemini review job completed"
@@ -136,14 +137,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyyaml python-dateutil
+          pip install pyyaml python-dateutil PyGithub openai>=1.0.0
       - name: Run Perplexity Review
         env:
           PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONPATH: ${{ github.workspace }}
         run: |
           echo "⚖️ Running Perplexity Compliance Review (mode: ${{ needs.router.outputs.mode }})"
-          python ai/runners/run_perplexity_review.py
+          python ai/runners/run_perplexity_review.py --pr-number ${{ github.event.pull_request.number }}
       - name: Comment result
         if: always()
         run: echo "✅ Perplexity review job completed"
