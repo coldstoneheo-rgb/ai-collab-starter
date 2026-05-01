@@ -33,9 +33,13 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Generate daily summary
         id: daily-summary
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           if [ -n "${{ inputs.day }}" ]; then
             python scripts/daily_ai_report.py --day "${{ inputs.day }}"
@@ -45,11 +49,11 @@ jobs:
 
       - name: Check budget status
         id: budget-check
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python - <<'EOF'
-          import json
-          import sys
-          from pathlib import Path
+          import os
           from ai.utils.cost_monitor import get_budget_status
 
           status = get_budget_status()
@@ -61,19 +65,22 @@ jobs:
           print(f"Usage: {status['usage_pct']:.1f}%")
           print()
 
-          # Set output flags
-          with open(Path(sys.argv[1]) / "GITHUB_OUTPUT", "a") as fh:
+          overbudget = max(0.0, status['monthly_spent_usd'] - status['monthly_budget_usd'])
+
+          github_output = os.environ['GITHUB_OUTPUT']
+          with open(github_output, 'a', encoding='utf-8') as fh:
               fh.write(f"is_over_budget={str(status['is_over_budget']).lower()}\n")
               fh.write(f"is_near_limit={str(status['is_near_limit']).lower()}\n")
               fh.write(f"usage_pct={status['usage_pct']:.1f}\n")
               fh.write(f"remaining_usd={status['remaining_usd']:.2f}\n")
               fh.write(f"spent_usd={status['monthly_spent_usd']:.2f}\n")
+              fh.write(f"budget_usd={status['monthly_budget_usd']:.2f}\n")
+              fh.write(f"overbudget_usd={overbudget:.2f}\n")
 
-          # Per-agent breakdown
           print("## Per-Agent Costs")
           for agent, cost in status.get('agents', {}).items():
               print(f"- {agent}: ${cost:.4f}")
-          EOF "$RUNNER_TEMP"
+          EOF
 
       - name: Create budget warning issue (near limit)
         if: steps.budget-check.outputs.is_near_limit == 'true' && steps.budget-check.outputs.is_over_budget == 'false'
@@ -135,7 +142,8 @@ jobs:
 
             - **Usage**: ${{ steps.budget-check.outputs.usage_pct }}%
             - **Spent**: $${{ steps.budget-check.outputs.spent_usd }}
-            - **Over budget by**: $${{ steps.budget-check.outputs.spent_usd - steps.budget-check.outputs.monthly_budget_usd }}
+            - **Budget**: $${{ steps.budget-check.outputs.budget_usd }}
+            - **Over budget by**: $${{ steps.budget-check.outputs.overbudget_usd }}
 
             ### ⚠️ AI Automation Blocked
 
