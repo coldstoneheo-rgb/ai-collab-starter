@@ -43,15 +43,34 @@ def detect_sensitive_paths(paths: Iterable[str]) -> List[str]:
 def collect_changed_paths_from_git(base_path: str = ".") -> Optional[List[str]]:
     """
     Collect changed file paths from the latest commit range.
-    """
-    try:
-        output = subprocess.check_output(
-            ["git", "-C", base_path, "diff", "--name-only", "HEAD~1..HEAD"],
-            stderr=subprocess.DEVNULL,
-            text=True,
-            timeout=10,
-        )
-    except Exception:
-        return None
 
-    return [line.strip() for line in output.splitlines() if line.strip()]
+    Tries HEAD~1..HEAD first (requires fetch-depth >= 2).
+    Falls back to files listed in the HEAD commit (git show) when
+    the parent commit is unavailable (shallow clone, initial commit).
+    """
+    def _run(cmd: list) -> Optional[str]:
+        try:
+            return subprocess.check_output(
+                cmd, stderr=subprocess.DEVNULL, text=True, timeout=10
+            )
+        except Exception:
+            return None
+
+    # Primary: diff against parent commit
+    out = _run(["git", "-C", base_path, "diff", "--name-only", "HEAD~1..HEAD"])
+    if out is not None:
+        paths = [line.strip() for line in out.splitlines() if line.strip()]
+        if paths:
+            return paths
+
+    # Fallback: list files touched in HEAD commit (works on shallow clones)
+    out = _run([
+        "git", "-C", base_path, "show", "--stat", "--name-only",
+        "--format=", "HEAD",
+    ])
+    if out is not None:
+        paths = [line.strip() for line in out.splitlines() if line.strip()]
+        if paths:
+            return paths
+
+    return None
