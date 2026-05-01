@@ -11,10 +11,16 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml python-dateutil
       - name: Run AutoFix
         env:
           GPT_API_KEY: ${{ secrets.GPT_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
         run: python ai/runners/run_autofix.py
       - name: Report AutoFix Result
         run: |
