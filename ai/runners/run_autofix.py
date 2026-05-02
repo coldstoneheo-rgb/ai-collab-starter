@@ -2,9 +2,9 @@
 """
 Autofix runner with safety guard.
 
-Policy:
-- If sensitive paths are detected, block auto actions and fail.
-- Otherwise, continue in placeholder mode (no code changes yet).
+Exit codes:
+  0 — safe (no sensitive paths) or intentionally blocked by policy
+  1 — unexpected error (path detection failed)
 """
 import argparse
 from pathlib import Path
@@ -28,22 +28,21 @@ def main() -> int:
     _ = Path(".github/AI_PROMPTS/autofix_v1.txt").read_text(encoding="utf-8")
     changed_paths = collect_changed_paths_from_git(base_path=args.base_path)
     if changed_paths is None:
-        print("=== AUTOFIX BLOCKED ===")
-        print(
-            "MANUAL APPROVAL REQUIRED: Unable to detect changed paths safely. "
-            "Auto actions are blocked."
-        )
-        return 1
+        print("=== AUTOFIX ERROR ===")
+        print("Unable to detect changed paths safely. Check git history depth.")
+        return 1  # actual unexpected error
 
     sensitive_hits = detect_sensitive_paths(changed_paths)
 
     if sensitive_hits:
-        print("=== AUTOFIX BLOCKED ===")
+        # Intentional policy block — not an error, human review is expected
+        print("=== AUTOFIX BLOCKED (policy) ===")
         print(MANUAL_APPROVAL_REQUIRED_MSG)
-        print("Sensitive paths:")
+        print("Sensitive paths detected:")
         for path in sensitive_hits:
-            print(f"- {path}")
-        return 1
+            print(f"  - {path}")
+        print("Action: open a PR and request human review for these paths.")
+        return 0  # policy working as intended, not a workflow failure
 
     print("=== AUTOFIX SAFE MODE ===")
     print("No sensitive paths detected. Placeholder mode keeps code unchanged.")
